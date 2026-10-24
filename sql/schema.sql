@@ -26,9 +26,9 @@ SET nim = EXCLUDED.nim, nama = EXCLUDED.nama;
 CREATE TABLE IF NOT EXISTS ulasan (
     id SERIAL PRIMARY KEY,
     route_id VARCHAR(10) NOT NULL REFERENCES anggota(route_id) ON DELETE CASCADE,
-    nama_pengunjung VARCHAR(100) NOT NULL DEFAULT 'Anonim',
+    nama VARCHAR(100) NOT NULL,
+    comment TEXT NOT NULL,
     rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    komentar TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
