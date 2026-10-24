@@ -1,27 +1,39 @@
-<h1 align="center">Komputasi Awan</h1>
+<h1 align="center">Komputasi Awan - Backend Service</h1>
 
-Project ini memisahkan kode menjadi 3 lapisan agar rapi, modular, dan tidak menumpuk di satu file:
+## Struktur Folder
+
+Berikut adalah pohon direktori proyek beserta ringkasan fungsinya:
 
 ```text
-backend/app/
-├── database.py       # Koneksi database ke Supabase
-├── repositories.py   # Query SQL (SELECT, INSERT, UPDATE, DELETE)
-├── services.py       # Logika bisnis & validasi data (cth: rating harus 1-5)
-├── handlers.py       # HTTP & Routing (GET/POST, baca JSON, status code)
-└── main.py           # Menyalakan HTTP server
+ComputingProject/
+├── backend/
+│   ├── app/
+│   │   ├── features/          # Modul fitur spesifik (TODO: implementasi belum diisi)
+│   │   │   ├── get_average.py # Perhitungan rata-rata ulasan
+│   │   │   ├── get_ulasan.py  # Pengambilan data ulasan
+│   │   │   ├── post_ulasan.py # Penambahan data ulasan
+│   │   │   └── served_by.py   # Identifikasi instance server
+│   │   ├── config.py          # Konfigurasi aplikasi terpusat
+│   │   ├── database.py        # Modul koneksi PostgreSQL / MySQL / MariaDB / (Supabase jika ingin menampilkan hal yang sama untuk setiap personal page)
+│   │   ├── handlers.py        # HTTP Request Handler (BaseHTTPRequestHandler)
+│   │   └── main.py            # Entry point aplikasi & inisialisasi server
+│   ├── tests/                 # Unit testing & integrasi
+│   ├── .env.example           # Template variabel environment
+│   └── requirements.txt       # Depedency Python yang dibutuhkan
+├── sql/
+│   └── schema.sql             # Definisi skema DDL database
+├── .gitignore                 # Konfigurasi file yang diabaikan git
+├── .htaccess                  # Konfigurasi web server Apache (URL rewrite / reverse proxy ke backend)
+└── README.md                  # Dokumentasi proyek
 ```
 
-### Aturan Menulis Kode untuk Tim:
-| Layer | File | Kapan menulis di sini? |
-| :--- | :--- | :--- |
-| **HTTP Layer** | `handlers.py` | Saat membuat endpoint/route baru, membaca request JSON, atau mengirim response. |
-| **Business Layer** | `services.py` | Saat membuat aturan/validasi data sebelum disimpan ke database. |
-| **Database Layer** | `repositories.py` | Saat menulis query SQL ke tabel PostgreSQL Supabase. |
+### Penjelasan Variabel
 
----
+| Variabel | Wajib | Keterangan |
+| :--- | :---: | :--- |
+| `DATABASE_URL` | Ya | URL koneksi basis data PostgreSQL lengkap (mendukung Supabase transaction/session pooler atau koneksi langsung). |
 
-## Cara Menjalankan Project
-
+## Cara Menjalankan Aplikasi
 1. **Masuk ke folder backend & aktifkan venv**:
    ```bash
    cd backend
@@ -42,9 +54,10 @@ backend/app/
    ```env
    DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
    ```
-
-4. **Jalankan server**:
+4. **Jalankan aplikasi**:
    ```bash
    python -m app.main
    ```
-   Server akan aktif di `http://localhost:8000`.
+5. Tekan `Ctrl + C` pada terminal untuk menghentikan server.
+
+---

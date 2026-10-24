@@ -1,1 +1,0 @@
-# Buat Logic / validasi
