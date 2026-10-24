@@ -2,6 +2,8 @@ import json
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
 from app.features.get_ulasan import get_ulasan
+from app.features.served_by import handle_served_by
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, data):
@@ -12,6 +14,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -27,10 +30,10 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed_url.path
         query_params = parse_qs(parsed_url.query)
 
-        if path == "/health":
+        if path == "/api/health":
             self._send_json(200, {"status": "ok"})
 
-        elif path in ("/ulasan", "/api/ulasan"):
+        elif path == "/api/ulasan":
             page = query_params.get("page", [1])[0]
             limit = query_params.get("limit", [10])[0]
             route_id = query_params.get("route_id", [None])[0]
@@ -40,9 +43,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(200, result)
             except Exception as e:
                 self._send_json(500, {"status": "error", "message": str(e)})
-
+        
+        elif path == "/api/served_by":
+            try:
+                status_code, data = handle_served_by()
+                self._send_json(status_code, data)
+            except Exception as e:
+                self._send_json(500, {"status": "error", "message": str(e)})
+                
         else:
-            self._send_json(404, {"error": "not found"})
+            self._send_json(404, {"status": "error", "message": "not found"})
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
