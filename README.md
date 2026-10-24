@@ -23,7 +23,6 @@ ComputingProject/
 ├── sql/
 │   └── schema.sql             # Definisi skema DDL database
 ├── .gitignore                 # Konfigurasi file yang diabaikan git
-├── .htaccess                  # Konfigurasi web server Apache (URL rewrite / reverse proxy ke backend)
 └── README.md                  # Dokumentasi proyek
 ```
 
