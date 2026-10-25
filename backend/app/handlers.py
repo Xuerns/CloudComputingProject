@@ -3,7 +3,7 @@ from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
 from app.features.get_ulasan import get_ulasan
 from app.features.served_by import handle_served_by
-
+from app.features.post_ulasan import post_ulasan
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, data):
@@ -54,7 +54,41 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"status": "error", "message": "not found"})
 
+    
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", 0))
-        data = json.loads(self.rfile.read(length) or b"{}")
-        self._send_json(201, {"received": data})    
+
+        path = urlparse(self.path).path
+
+        if path != "/api/ulasan":
+            self._send_json(404, {
+                "status": "error",
+                "message": "not found"
+            })
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(length) or b"{}")
+
+            if not isinstance(data, dict):
+                raise ValueError("Data harus berupa objek JSON")
+
+            # Sementara untuk pengujian lokal
+            route_id = data.get("route_id")
+
+            hasil = post_ulasan(data, route_id)
+
+            self._send_json(201, hasil)
+
+        except (ValueError, TypeError) as e:
+            self._send_json(400, {
+                "status": "error",
+                "message": str(e)
+            })
+
+        except Exception:
+            self._send_json(500, {
+                "status": "error",
+                "message": "Gagal menyimpan ulasan"
+            })
+    
