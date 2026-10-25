@@ -1,0 +1,5 @@
+/* App specific helpers if needed */
+.app-root {
+  min-height: 100vh;
+  position: relative;
+}
