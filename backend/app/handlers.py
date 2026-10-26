@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 from app.features.get_ulasan import get_ulasan
 from app.features.served_by import handle_served_by
 from app.features.post_ulasan import post_ulasan
+from app.features.get_average import get_average
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, data):
@@ -48,6 +49,15 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 status_code, data = handle_served_by()
                 self._send_json(status_code, data)
+            except Exception as e:
+                self._send_json(500, {"status": "error", "message": str(e)})
+
+        elif path in ("/api/average", "/api/ulasan/average"):
+            try:
+                route_id = query_params.get("route_id", [None])[0]
+                self._send_json(200, get_average(route_id=route_id))
+            except (ValueError, TypeError) as e:
+                self._send_json(400, {"status": "error", "message": str(e)})
             except Exception as e:
                 self._send_json(500, {"status": "error", "message": str(e)})
                 
