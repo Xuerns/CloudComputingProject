@@ -4,12 +4,13 @@ from http.server import BaseHTTPRequestHandler
 from app.features.get_ulasan import get_ulasan
 from app.features.served_by import handle_served_by
 from app.features.post_ulasan import post_ulasan
+from app.features.get_average import get_average
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, data):
-        body = json.dumps(data).encode("utf-8")
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
@@ -37,6 +38,8 @@ class Handler(BaseHTTPRequestHandler):
             page = query_params.get("page", [1])[0]
             limit = query_params.get("limit", [10])[0]
             route_id = query_params.get("route_id", [None])[0]
+            if route_id in ("all", "semua", "", "None", "null"):
+                route_id = None
 
             try:
                 result = get_ulasan(page=page, limit=limit, route_id=route_id)
@@ -50,6 +53,18 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(status_code, data)
             except Exception as e:
                 self._send_json(500, {"status": "error", "message": str(e)})
+
+        elif path in ("/api/average", "/api/ulasan/average"):
+            try:
+                route_id = query_params.get("route_id", [None])[0]
+                if route_id in ("all", "semua", "", "None", "null"):
+                    route_id = None
+                self._send_json(200, get_average(route_id=route_id))
+            except (ValueError, TypeError) as e:
+                self._send_json(400, {"status": "error", "message": str(e)})
+            except Exception as e:
+                self._send_json(500, {"status": "error", "message": str(e)})
+
                 
         else:
             self._send_json(404, {"status": "error", "message": "not found"})
