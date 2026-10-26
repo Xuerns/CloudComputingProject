@@ -1,65 +1,42 @@
-from app.config import MEMBER_ROUTE, DB_TYPE
+from app.config import MEMBER_ROUTE
 from app.database import get_db_cursor
 
-
 def get_average(route_id=None):
-    """
-    Menghitung rata-rata rating dari tabel 'ulasan'.
+    if not isinstance(route_id, str):
+        route_id = MEMBER_ROUTE if route_id is None else ""
+    route_id = route_id.strip()
 
-    Args:
-        route_id (str|None): Filter berdasarkan route_id anggota.
-                             Jika None atau 'all', hitung semua ulasan.
+    if route_id in ("", "None", "null", "all", "semua"):
+        route_id = MEMBER_ROUTE
 
-    Returns:
-        tuple: (HTTP status code (int), dict respons JSON)
-    """
-    if route_id in (None, "", "all", "semua", "None", "null"):
-        filter_route = None
-    else:
-        filter_route = route_id
+    if not route_id or len(route_id) > 10:
+        raise ValueError("Route ID tidak valid (maksimal 10 karakter)")
 
-    avg_expr = "ROUND(AVG(rating)::numeric, 2)" if DB_TYPE == "postgres" else "ROUND(AVG(rating), 2)"
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT route_id, nim, nama FROM anggota WHERE route_id = %s;", (route_id,))
+        anggota = cursor.fetchone()
+        rows = []
+        if anggota:
+            cursor.execute(
+                "SELECT rating FROM ulasan WHERE route_id = %s AND rating >= 1 AND rating <= 5;",
+                (route_id,)
+            )
+            rows = cursor.fetchall()
 
-    try:
-        with get_db_cursor() as cur:
-            if filter_route:
-                cur.execute(
-                    f"""
-                    SELECT
-                        COUNT(*)          AS total_ulasan,
-                        {avg_expr}        AS rata_rata
-                    FROM ulasan
-                    WHERE route_id = %s
-                    """,
-                    (filter_route,)
-                )
-            else:
-                cur.execute(
-                    f"""
-                    SELECT
-                        COUNT(*)          AS total_ulasan,
-                        {avg_expr}        AS rata_rata
-                    FROM ulasan
-                    """
-                )
-            result = cur.fetchone()
+    if not anggota:
+        raise ValueError(f"Anggota dengan route_id '{route_id}' tidak ditemukan")
 
+    ratings = [r["rating"] for r in rows if isinstance(r.get("rating"), int)]
+    total_ulasan = len(ratings)
+    rata_rata = round(sum(ratings) / total_ulasan, 2) if total_ulasan > 0 else 0.0
 
-        total_ulasan = int(result["total_ulasan"]) if result and result["total_ulasan"] else 0
-        rata_rata = float(result["rata_rata"]) if result and result["rata_rata"] is not None else 0.0
-
-        return 200, {
-            "status": "success",
-            "data": {
-                "route_id": filter_route or "all",
-                "total_ulasan": total_ulasan,
-                "rata_rata_rating": rata_rata,
-            }
+    return {
+        "status": "success",
+        "data": {
+            "route_id": route_id,
+            "nama": anggota["nama"],
+            "nim": anggota["nim"],
+            "total_ulasan": total_ulasan,
+            "rata_rata": rata_rata
         }
-
-    except Exception as e:
-        print(f"[get_average] Error: {e}")
-        return 500, {
-            "status": "error",
-            "message": f"Terjadi kesalahan server: {str(e)}"
-        }
+    }

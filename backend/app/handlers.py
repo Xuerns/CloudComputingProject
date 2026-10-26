@@ -2,10 +2,9 @@ import json
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
 from app.features.get_ulasan import get_ulasan
+from app.features.served_by import handle_served_by
 from app.features.post_ulasan import post_ulasan
 from app.features.get_average import get_average
-from app.features.served_by import handle_served_by
-
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, data):
@@ -41,20 +40,13 @@ class Handler(BaseHTTPRequestHandler):
             route_id = query_params.get("route_id", [None])[0]
             if route_id in ("all", "semua", "", "None", "null"):
                 route_id = None
+
             try:
                 result = get_ulasan(page=page, limit=limit, route_id=route_id)
                 self._send_json(200, result)
             except Exception as e:
                 self._send_json(500, {"status": "error", "message": str(e)})
-
-        elif path == "/api/average":
-            route_id = query_params.get("route_id", [None])[0]
-            try:
-                status_code, data = get_average(route_id=route_id)
-                self._send_json(status_code, data)
-            except Exception as e:
-                self._send_json(500, {"status": "error", "message": str(e)})
-
+        
         elif path == "/api/served_by":
             try:
                 status_code, data = handle_served_by()
@@ -62,40 +54,54 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json(500, {"status": "error", "message": str(e)})
 
+        elif path in ("/api/average", "/api/ulasan/average"):
+            try:
+                route_id = query_params.get("route_id", [None])[0]
+                if route_id in ("all", "semua", "", "None", "null"):
+                    route_id = None
+                self._send_json(200, get_average(route_id=route_id))
+            except (ValueError, TypeError) as e:
+                self._send_json(400, {"status": "error", "message": str(e)})
+            except Exception as e:
+                self._send_json(500, {"status": "error", "message": str(e)})
+                
         else:
             self._send_json(404, {"status": "error", "message": "Endpoint tidak ditemukan."})
 
     def do_POST(self):
-        parsed_url = urlparse(self.path)
-        path = parsed_url.path
+        path = urlparse(self.path).path
+
+        if path != "/api/ulasan":
+            self._send_json(404, {
+                "status": "error",
+                "message": "Endpoint tidak ditemukan."
+            })
+            return
 
         try:
             length = int(self.headers.get("Content-Length", 0))
             body_bytes = self.rfile.read(length) if length > 0 else b"{}"
             data = json.loads(body_bytes)
-        except (json.JSONDecodeError, ValueError):
-            self._send_json(400, {"status": "error", "message": "Body permintaan bukan JSON yang valid."})
-            return
 
-        if path == "/api/ulasan":
+            if not isinstance(data, dict):
+                raise ValueError("Data harus berupa objek JSON")
+
             route_id = data.get("route_id")
-            nama = data.get("nama")
-            comment = data.get("comment")
-            rating = data.get("rating")
+            hasil = post_ulasan(data, route_id)
 
-            try:
-                status_code, result = post_ulasan(
-                    route_id=route_id,
-                    nama=nama,
-                    comment=comment,
-                    rating=rating,
-                )
-                self._send_json(status_code, result)
-            except Exception as e:
-                self._send_json(500, {"status": "error", "message": str(e)})
+            self._send_json(201, hasil)
 
-        else:
-            self._send_json(404, {"status": "error", "message": "Endpoint tidak ditemukan."})
+        except (ValueError, TypeError) as e:
+            self._send_json(400, {
+                "status": "error",
+                "message": str(e)
+            })
+
+        except Exception as e:
+            self._send_json(500, {
+                "status": "error",
+                "message": f"Gagal menyimpan ulasan: {str(e)}"
+            })
 
     def log_message(self, format, *args):
         """Override agar log lebih informatif di terminal."""

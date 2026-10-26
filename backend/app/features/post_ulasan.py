@@ -1,103 +1,59 @@
 from app.config import MEMBER_ROUTE, DB_TYPE
 from app.database import get_db_cursor
 
+def post_ulasan(data, route_id=None):
+    nama = data.get("nama")
+    comment = data.get("comment")
+    rating = data.get("rating")
 
+    if not isinstance(nama, str) or nama.strip() == "":
+        raise ValueError("Nama tidak boleh kosong")
 
-def post_ulasan(route_id, nama, comment, rating):
-    """
-    Menyimpan satu ulasan baru ke tabel 'ulasan' di database.
+    if len(nama) > 100:
+        raise ValueError("Nama maksimal 100 karakter")
 
-    Args:
-        route_id (str): Identitas server anggota (contoh: 'm1').
-        nama (str): Nama pengulas.
-        comment (str): Isi komentar.
-        rating (int): Nilai bintang 1–5.
+    if not isinstance(comment, str) or comment.strip() == "":
+        raise ValueError("Komentar tidak boleh kosong")
 
-    Returns:
-        tuple: (HTTP status code (int), dict respons JSON)
-    """
-    # Validasi input
-    nama = str(nama or '').strip()
-    comment = str(comment or '').strip()
+    if type(rating) != int or rating < 1 or rating > 5:
+        raise ValueError("Rating harus 1 sampai 5")
 
-    if not nama or len(nama) > 100:
-        return 400, {
-            "status": "error",
-            "message": "Nama wajib diisi dan maksimal 100 karakter."
-        }
-
-    if not comment:
-        return 400, {
-            "status": "error",
-            "message": "Komentar tidak boleh kosong."
-        }
-
-    try:
-        rating = int(rating)
-    except (ValueError, TypeError):
-        rating = 0
-
-    if rating < 1 or rating > 5:
-        return 400, {
-            "status": "error",
-            "message": "Rating harus berupa angka antara 1 dan 5."
-        }
-
-    # Gunakan route_id dari body, atau fallback ke MEMBER_ROUTE config
     if not route_id:
-        route_id = MEMBER_ROUTE
+        route_id = data.get("route_id") or MEMBER_ROUTE
 
-    try:
-        with get_db_cursor(commit=True) as cur:
-            if DB_TYPE == "postgres":
-                cur.execute(
-                    """
-                    INSERT INTO ulasan (route_id, nama, comment, rating)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id, route_id, nama, comment, rating, created_at
-                    """,
-                    (route_id, nama, comment, rating)
-                )
-                inserted = cur.fetchone()
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO ulasan (route_id, nama, comment, rating)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (route_id, nama, comment, rating)
-                )
-                new_id = cur.lastrowid
-                cur.execute(
-                    """
-                    SELECT id, route_id, nama, comment, rating, created_at
-                    FROM ulasan
-                    WHERE id = %s
-                    """,
-                    (new_id,)
-                )
-                inserted = cur.fetchone()
+    if not isinstance(route_id, str) or route_id.strip() == "":
+        raise ValueError("Route ID tidak valid")
 
+    with get_db_cursor(commit=True) as cursor:
+        if DB_TYPE == "postgres":
+            sql = """
+                INSERT INTO ulasan (route_id, nama, comment, rating)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+            """
+            cursor.execute(sql, (
+                route_id.strip(),
+                nama.strip(),
+                comment.strip(),
+                rating
+            ))
+            hasil = cursor.fetchone()
+            new_id = hasil["id"]
+        else:
+            sql = """
+                INSERT INTO ulasan (route_id, nama, comment, rating)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(sql, (
+                route_id.strip(),
+                nama.strip(),
+                comment.strip(),
+                rating
+            ))
+            new_id = cursor.lastrowid
 
-        if inserted:
-            item = dict(inserted)
-            if item.get("created_at"):
-                item["created_at"] = item["created_at"].isoformat()
-
-            return 201, {
-                "status": "success",
-                "message": "Ulasan berhasil disimpan.",
-                "data": item
-            }
-
-        return 500, {
-            "status": "error",
-            "message": "Gagal mengambil data ulasan yang baru disimpan."
-        }
-
-    except Exception as e:
-        print(f"[post_ulasan] Error: {e}")
-        return 500, {
-            "status": "error",
-            "message": f"Terjadi kesalahan server: {str(e)}"
-        }
+    return {
+        "status": "success",
+        "message": "Ulasan berhasil disimpan",
+        "id": new_id
+    }
