@@ -1,5 +1,6 @@
-from app.config import MEMBER_ROUTE
+from app.config import MEMBER_ROUTE, DB_TYPE
 from app.database import get_db_cursor
+
 
 
 def post_ulasan(route_id, nama, comment, rating):
@@ -48,15 +49,35 @@ def post_ulasan(route_id, nama, comment, rating):
 
     try:
         with get_db_cursor(commit=True) as cur:
-            cur.execute(
-                """
-                INSERT INTO ulasan (route_id, nama, comment, rating)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, route_id, nama, comment, rating, created_at
-                """,
-                (route_id, nama, comment, rating)
-            )
-            inserted = cur.fetchone()
+            if DB_TYPE == "postgres":
+                cur.execute(
+                    """
+                    INSERT INTO ulasan (route_id, nama, comment, rating)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, route_id, nama, comment, rating, created_at
+                    """,
+                    (route_id, nama, comment, rating)
+                )
+                inserted = cur.fetchone()
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO ulasan (route_id, nama, comment, rating)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (route_id, nama, comment, rating)
+                )
+                new_id = cur.lastrowid
+                cur.execute(
+                    """
+                    SELECT id, route_id, nama, comment, rating, created_at
+                    FROM ulasan
+                    WHERE id = %s
+                    """,
+                    (new_id,)
+                )
+                inserted = cur.fetchone()
+
 
         if inserted:
             item = dict(inserted)

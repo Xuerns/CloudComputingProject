@@ -65,14 +65,14 @@ async function request(endpoint, options = {}, timeoutMs = 8000) {
 }
 
 /**
- * Get reviews list with pagination and route_id filter
+ * Get reviews list with pagination and optional route_id filter
  */
-export async function getUlasan({ page = 1, limit = 10, routeId = DEFAULT_ROUTE_ID } = {}) {
+export async function getUlasan({ page = 1, limit = 50, routeId = null } = {}) {
   const query = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
-  if (routeId) {
+  if (routeId && routeId !== 'all') {
     query.set('route_id', routeId);
   }
 

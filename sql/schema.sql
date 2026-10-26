@@ -1,6 +1,7 @@
 -- ==========================================================
--- Skema Database: Aplikasi Testimoni & Rating
--- Mendukung: PostgreSQL (Supabase) dan MySQL / MariaDB
+-- Skema Database: PostgreSQL (Supabase)
+-- Catatan: Untuk MySQL / MariaDB (XAMPP), gunakan file:
+--          sql/schema_mysql.sql
 -- ==========================================================
 
 -- 1. Tabel Anggota (m0 s/d m4)

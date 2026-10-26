@@ -26,37 +26,49 @@ ComputingProject/
 └── README.md                  # Dokumentasi proyek
 ```
 
-### Penjelasan Variabel
+### Penjelasan Variabel `.env`
 
-| Variabel | Wajib | Keterangan |
-| :--- | :---: | :--- |
-| `DATABASE_URL` | Ya | URL koneksi basis data PostgreSQL lengkap (mendukung Supabase transaction/session pooler atau koneksi langsung). |
+Aplikasi mendukung 2 mode basis data yang dapat dipilih dengan mudah:
+
+1. **Mode Localhost XAMPP (MySQL / MariaDB)**:
+   - Dibiarkan aktif saat ingin menggunakan database lokal XAMPP.
+   - Variabel yang digunakan:
+     - `DB_HOST=127.0.0.1`
+     - `DB_PORT=3306`
+     - `DB_USER=root`
+     - `DB_PASSWORD=` (kosong untuk default XAMPP)
+     - `DB_NAME=kelompok_db`
+   - Pastikan variabel `DATABASE_URL` dikomentari atau dikosongkan.
+
+2. **Mode Supabase (Cloud PostgreSQL)**:
+   - Aktifkan dengan mengisi dan meng-uncomment `DATABASE_URL`.
+   - Format: `DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
 
 ## Cara Menjalankan Aplikasi
-1. **Masuk ke folder backend & aktifkan venv**:
+
+1. **Persiapan Database (Jika menggunakan XAMPP)**:
+   - Buka **XAMPP Control Panel** dan klik **Start** pada modul **Apache** dan **MySQL**.
+   - Buka phpMyAdmin di `http://localhost/phpmyadmin`.
+   - Buat database baru bernama `kelompok_db` dan jalankan skrip SQL dari [sql/schema_mysql.sql](file:///f:/my-portfolio-01/sql/schema_mysql.sql).
+
+2. **Masuk ke folder backend & aktifkan venv**:
    ```bash
    cd backend
    
-   # linux
-   source .venv/bin/activate 
-   
-   # windows or mac
-   .venv/Scripts/activate 
+   # Windows (PowerShell)
+   .venv\Scripts\activate 
    ```
 
-2. **Install dependensi**:
+3. **Install dependensi**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Pastikan konfigurasi `.env` sudah terisi**:
-   ```env
-   DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-   ```
-4. **Jalankan aplikasi**:
+4. **Jalankan aplikasi backend**:
    ```bash
    python -m app.main
    ```
 5. Tekan `Ctrl + C` pada terminal untuk menghentikan server.
+
 
 ---

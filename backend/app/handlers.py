@@ -39,6 +39,8 @@ class Handler(BaseHTTPRequestHandler):
             page = query_params.get("page", [1])[0]
             limit = query_params.get("limit", [10])[0]
             route_id = query_params.get("route_id", [None])[0]
+            if route_id in ("all", "semua", "", "None", "null"):
+                route_id = None
             try:
                 result = get_ulasan(page=page, limit=limit, route_id=route_id)
                 self._send_json(200, result)

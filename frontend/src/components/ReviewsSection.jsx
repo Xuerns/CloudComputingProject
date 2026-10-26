@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getUlasan, postUlasan, getInitials, DEFAULT_ROUTE_ID } from '../services/api';
 import { StarIcon, UserIcon, SendIcon, CheckIcon } from './Icons';
 
+const NODE_OPTIONS = ['all', 'm0', 'm1', 'm2', 'm3', 'm4'];
+
 export default function ReviewsSection({ lang }) {
   // Reviews List State
   const [reviews, setReviews] = useState([]);
   const [pagination, setPagination] = useState({ current_page: 1, total_data: 0, total_pages: 1 });
+  const [filterNode, setFilterNode] = useState('all');
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [reviewsError, setReviewsError] = useState(null);
 
@@ -18,11 +21,16 @@ export default function ReviewsSection({ lang }) {
   const [formAlert, setFormAlert] = useState(null); // { type: 'success' | 'error', message: '' }
 
   // Load reviews from backend
-  const fetchReviews = useCallback(async () => {
+  const fetchReviews = useCallback(async (nodeToFetch) => {
+    const targetNode = nodeToFetch !== undefined ? nodeToFetch : filterNode;
     setIsLoadingReviews(true);
     setReviewsError(null);
     try {
-      const response = await getUlasan({ page: 1, limit: 20, routeId: DEFAULT_ROUTE_ID });
+      const response = await getUlasan({
+        page: 1,
+        limit: 50,
+        routeId: targetNode === 'all' ? null : targetNode,
+      });
       if (response && response.status === 'success') {
         setReviews(response.data || []);
         if (response.pagination) {
@@ -41,11 +49,11 @@ export default function ReviewsSection({ lang }) {
     } finally {
       setIsLoadingReviews(false);
     }
-  }, [lang]);
+  }, [lang, filterNode]);
 
   useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
+    fetchReviews(filterNode);
+  }, [filterNode]);
 
   // Handle Form Submission
   const handleSubmit = async (e) => {
@@ -134,16 +142,15 @@ export default function ReviewsSection({ lang }) {
       ? (reviews.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0) / reviews.length).toFixed(1)
       : null;
 
-  // Format date helper
+  // Format date helper (YYYY-MM-DD)
   const formatDate = (isoString) => {
     if (!isoString) return '';
     try {
       const date = new Date(isoString);
-      return date.toLocaleDateString(lang === 'ID' ? 'id-ID' : 'en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     } catch {
       return '';
     }
@@ -310,6 +317,23 @@ export default function ReviewsSection({ lang }) {
               )}
             </div>
 
+            {/* Node Filter Bar */}
+            <div className="filter-node-container">
+              <span className="filter-node-label">FILTER NODE:</span>
+              <div className="filter-node-buttons">
+                {NODE_OPTIONS.map((node) => (
+                  <button
+                    key={node}
+                    type="button"
+                    className={`filter-node-btn ${filterNode === node ? 'active' : ''}`}
+                    onClick={() => setFilterNode(node)}
+                  >
+                    {node === 'all' ? (lang === 'ID' ? 'SEMUA' : 'ALL') : node}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Error State Banner */}
             {reviewsError && (
               <div
@@ -330,7 +354,7 @@ export default function ReviewsSection({ lang }) {
                 <span>{reviewsError}</span>
                 <button
                   type="button"
-                  onClick={fetchReviews}
+                  onClick={() => fetchReviews(filterNode)}
                   style={{
                     background: 'rgba(255, 255, 255, 0.08)',
                     border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -384,7 +408,7 @@ export default function ReviewsSection({ lang }) {
                         <div className="review-meta-top">
                           <span className="review-author-name">{rev.nama}</span>
                           <span className="review-date">
-                            {formatDate(rev.created_at)}
+                            LOG: {formatDate(rev.created_at)}
                           </span>
                         </div>
 
@@ -401,6 +425,14 @@ export default function ReviewsSection({ lang }) {
 
                         {/* Comment Text Escaped as Safe Plain Text */}
                         <p className="review-text-content">{rev.comment}</p>
+
+                        {/* Origin Node Indicator */}
+                        <div className="review-node-footer">
+                          <span className="node-caption">ORIGIN NODE</span>
+                          <span className="node-badge" title={`Server Node: ${rev.route_id || 'm1'}`}>
+                            {rev.route_id || 'm1'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
